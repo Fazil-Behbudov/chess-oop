@@ -16,14 +16,15 @@ std::string trim(const std::string& input) {
 }
 }
 
-Game::Game() : turn_(Color::White), result_("?-?"), finished_(false) {}
+Game::Game() : turn_(Color::White), result_("?-?"), finished_(false), interactive_ui_(false) {}
 
 int Game::run() {
-    board_.display(std::cout);
+    interactive_ui_ = (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO));
+    render_board();
 
     std::string command;
     while (!finished_) {
-        if (isatty(STDIN_FILENO)) {
+        if (interactive_ui_) {
             std::cout << "Move (eg. a1a8) ? ";
         }
         if (!std::getline(std::cin, command)) {
@@ -99,7 +100,7 @@ bool Game::handle_move(const std::string& command) {
         }
     }
 
-    board_.display(std::cout);
+    render_board();
     finalize_turn_after_move();
     return true;
 }
@@ -113,14 +114,14 @@ bool Game::handle_castling(const std::string& command) {
     }
 
     std::cout << "-> castling " << (king_side ? "O-O" : "O-O-O") << "\n";
-    board_.display(std::cout);
+    render_board();
     finalize_turn_after_move();
     return true;
 }
 
 bool Game::handle_promotion(const Square& destination) {
     while (true) {
-        if (isatty(STDIN_FILENO)) {
+        if (interactive_ui_) {
             std::cout << "Promote to (Q,R,B,N) ? ";
         }
 
@@ -154,6 +155,13 @@ bool Game::handle_promotion(const Square& destination) {
         std::cout << "-> promotion to " << code << "\n";
         return true;
     }
+}
+
+void Game::render_board() const {
+    if (interactive_ui_) {
+        std::cout << "\033[H\033[2J";
+    }
+    board_.display(std::cout);
 }
 
 void Game::finalize_turn_after_move() {
