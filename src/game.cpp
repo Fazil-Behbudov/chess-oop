@@ -16,10 +16,12 @@ std::string trim(const std::string& input) {
 }
 }
 
-Game::Game() : turn_(Color::White), result_("?-?"), finished_(false), interactive_ui_(false) {}
+Game::Game()
+    : turn_(Color::White), result_("?-?"), finished_(false), interactive_ui_(false), white_bottom_view_(true) {}
 
 int Game::run() {
     interactive_ui_ = (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO));
+    white_bottom_view_ = true;
     render_board();
 
     std::string command;
@@ -100,6 +102,7 @@ bool Game::handle_move(const std::string& command) {
         }
     }
 
+    white_bottom_view_ = !white_bottom_view_;
     render_board();
     finalize_turn_after_move();
     return true;
@@ -114,6 +117,7 @@ bool Game::handle_castling(const std::string& command) {
     }
 
     std::cout << "-> castling " << (king_side ? "O-O" : "O-O-O") << "\n";
+    white_bottom_view_ = !white_bottom_view_;
     render_board();
     finalize_turn_after_move();
     return true;
@@ -161,7 +165,7 @@ void Game::render_board() const {
     if (interactive_ui_) {
         std::cout << "\033[H\033[2J";
     }
-    board_.display(std::cout);
+    board_.display(std::cout, white_bottom_view_);
 }
 
 void Game::finalize_turn_after_move() {

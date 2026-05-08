@@ -15,6 +15,7 @@ private:
     std::string result_;
     bool finished_;
     bool interactive_ui_;
+    bool white_bottom_view_;
 
     bool handle_command(const std::string& command);
     bool handle_move(const std::string& command);

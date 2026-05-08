@@ -13,7 +13,7 @@ public:
     Board();
 
     void reset_initial_position();
-    void display(std::ostream& os) const;
+    void display(std::ostream& os, bool white_bottom = true) const;
     std::string canonical_position() const;
 
     const Piece* piece_at(const Square& square) const;

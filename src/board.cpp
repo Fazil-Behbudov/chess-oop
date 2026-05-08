@@ -53,13 +53,20 @@ void Board::reset_initial_position() {
     en_passant_pawn_square_ = Square();
 }
 
-void Board::display(std::ostream& os) const {
+void Board::display(std::ostream& os, bool white_bottom) const {
     os << "\n";
-    os << "     a     b     c     d     e     f     g     h    \n";
+    os << "     ";
+    for (int visual_col = 0; visual_col < 8; ++visual_col) {
+        const int col = white_bottom ? visual_col : (7 - visual_col);
+        os << static_cast<char>('a' + col) << "     ";
+    }
+    os << "\n";
     os << "  +-----+-----+-----+-----+-----+-----+-----+-----+\n";
-    for (int row = 7; row >= 0; --row) {
+    for (int visual_row = 0; visual_row < 8; ++visual_row) {
+        const int row = white_bottom ? (7 - visual_row) : visual_row;
         os << row + 1 << " ";
-        for (int col = 0; col < 8; ++col) {
+        for (int visual_col = 0; visual_col < 8; ++visual_col) {
+            const int col = white_bottom ? visual_col : (7 - visual_col);
             os << "|";
             const Piece* piece = board_[row][col].get();
             if (piece != nullptr) {
