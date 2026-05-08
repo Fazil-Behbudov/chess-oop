@@ -1,5 +1,6 @@
 #include "piece.h"
 
+// New pieces start as "not moved" (important for castling/pawn rules).
 Piece::Piece(Color color, PieceType type) : color_(color), type_(type), has_moved_(false) {}
 
 Color Piece::color() const {
@@ -19,6 +20,7 @@ void Piece::mark_moved() {
 }
 
 std::string Piece::symbol() const {
+    // Unicode symbols used for board display.
     if (color_ == Color::White) {
         switch (type_) {
             case PieceType::King: return "♔";
@@ -43,6 +45,7 @@ std::string Piece::symbol() const {
 
 std::string Piece::canonical_code() const {
     std::string code;
+    // Canonical serialization uses color prefix + piece letter (e.g. wQ, bN).
     code += (color_ == Color::White ? 'w' : 'b');
     switch (type_) {
         case PieceType::King: code += 'K'; break;

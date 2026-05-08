@@ -1,4 +1,5 @@
 #include "game.h"
+#include "board_view.h"
 
 #include <cctype>
 #include <iostream>
@@ -20,6 +21,7 @@ Game::Game()
     : turn_(Color::White), result_("?-?"), finished_(false), interactive_ui_(false), white_bottom_view_(true) {}
 
 int Game::run() {
+    // Keep rich terminal behavior only for real interactive sessions.
     interactive_ui_ = (isatty(STDIN_FILENO) && isatty(STDOUT_FILENO));
     white_bottom_view_ = true;
     render_board();
@@ -61,6 +63,7 @@ bool Game::handle_command(const std::string& command) {
         return true;
     }
 
+    // Accept O/o/0 spellings to match assignment input constraints.
     static const std::regex castle_king_pattern("^(O|o|0)-(O|o|0)$");
     static const std::regex castle_queen_pattern("^(O|o|0)-(O|o|0)-(O|o|0)$");
     if (std::regex_match(command, castle_king_pattern) || std::regex_match(command, castle_queen_pattern)) {
@@ -102,6 +105,7 @@ bool Game::handle_move(const std::string& command) {
         }
     }
 
+    // Rotate board perspective after each legal move.
     white_bottom_view_ = !white_bottom_view_;
     render_board();
     finalize_turn_after_move();
@@ -117,6 +121,7 @@ bool Game::handle_castling(const std::string& command) {
     }
 
     std::cout << "-> castling " << (king_side ? "O-O" : "O-O-O") << "\n";
+    // Castling is also a legal move and rotates view as well.
     white_bottom_view_ = !white_bottom_view_;
     render_board();
     finalize_turn_after_move();
@@ -163,12 +168,14 @@ bool Game::handle_promotion(const Square& destination) {
 
 void Game::render_board() const {
     if (interactive_ui_) {
+        // Single-board mode: clear and redraw in place.
         std::cout << "\033[H\033[2J";
     }
-    board_.display(std::cout, white_bottom_view_);
+    BoardView::render(board_, std::cout, white_bottom_view_);
 }
 
 void Game::finalize_turn_after_move() {
+    // Evaluate next side position: check, checkmate, or stalemate.
     const Color opponent = (turn_ == Color::White) ? Color::Black : Color::White;
     const bool opponent_in_check = board_.is_in_check(opponent);
     if (opponent_in_check) {

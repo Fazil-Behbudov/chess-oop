@@ -1,7 +1,6 @@
 #include "board.h"
 
 #include <cstdlib>
-#include <iostream>
 #include <utility>
 
 namespace {
@@ -51,33 +50,6 @@ void Board::reset_initial_position() {
     en_passant_available_ = false;
     en_passant_target_ = Square();
     en_passant_pawn_square_ = Square();
-}
-
-void Board::display(std::ostream& os, bool white_bottom) const {
-    os << "\n";
-    os << "     ";
-    for (int visual_col = 0; visual_col < 8; ++visual_col) {
-        const int col = white_bottom ? visual_col : (7 - visual_col);
-        os << static_cast<char>('a' + col) << "     ";
-    }
-    os << "\n";
-    os << "  +-----+-----+-----+-----+-----+-----+-----+-----+\n";
-    for (int visual_row = 0; visual_row < 8; ++visual_row) {
-        const int row = white_bottom ? (7 - visual_row) : visual_row;
-        os << row + 1 << " ";
-        for (int visual_col = 0; visual_col < 8; ++visual_col) {
-            const int col = white_bottom ? visual_col : (7 - visual_col);
-            os << "|";
-            const Piece* piece = board_[row][col].get();
-            if (piece != nullptr) {
-                os << "  " << piece->symbol() << "  ";
-            } else {
-                os << "     ";
-            }
-        }
-        os << "|\n";
-        os << "  +-----+-----+-----+-----+-----+-----+-----+-----+\n";
-    }
 }
 
 std::string Board::canonical_position() const {
@@ -210,6 +182,7 @@ bool Board::move_piece_basic(const Square& origin, const Square& destination, Co
     bool is_en_passant_capture = false;
     Square en_passant_capture_square;
     if (from_piece->type() == PieceType::Pawn && !is_capture) {
+        // Special case: diagonal pawn move to empty target can be en passant.
         const int drow = destination.row() - origin.row();
         const int dcol = destination.col() - origin.col();
         const int direction = (from_piece->color() == Color::White) ? 1 : -1;
@@ -240,6 +213,7 @@ bool Board::move_piece_basic(const Square& origin, const Square& destination, Co
     board_[destination.row()][destination.col()] = std::move(board_[origin.row()][origin.col()]);
     board_[destination.row()][destination.col()]->mark_moved();
 
+    // Any successful move cancels previous en passant rights first.
     en_passant_available_ = false;
     en_passant_target_ = Square();
     en_passant_pawn_square_ = Square();
@@ -247,6 +221,7 @@ bool Board::move_piece_basic(const Square& origin, const Square& destination, Co
     if (moved_piece != nullptr && moved_piece->type() == PieceType::Pawn) {
         const int drow = destination.row() - origin.row();
         if (std::abs(drow) == 2) {
+            // A two-step pawn advance enables en passant for exactly next move.
             const int direction = (moved_piece->color() == Color::White) ? 1 : -1;
             en_passant_available_ = true;
             en_passant_target_ = Square(origin.row() + direction, origin.col());
@@ -286,6 +261,7 @@ bool Board::castle(Color turn, bool king_side, std::string& error) {
         return false;
     }
 
+    // Tentatively move king+rook, validate king safety, then keep or rollback.
     auto king_piece = std::move(board_[king_from.row()][king_from.col()]);
     auto rook_piece = std::move(board_[rook_from.row()][rook_from.col()]);
     board_[king_to.row()][king_to.col()] = std::move(king_piece);
@@ -522,6 +498,7 @@ bool Board::is_legal_move_no_commit(const Square& origin, const Square& destinat
         }
     }
 
+    // Reuse same validators as real move, but do not mutate final state.
     std::string error;
     if (!is_geometrically_legal_move(*from_piece, origin, destination, is_capture, error)) {
         return false;
@@ -561,6 +538,7 @@ bool Board::can_castle_no_commit(Color turn, bool king_side) {
         return false;
     }
 
+    // Simulate castling and ensure final king square is safe.
     auto king_piece = std::move(board_[king_from.row()][king_from.col()]);
     auto rook_piece = std::move(board_[rook_from.row()][rook_from.col()]);
     board_[king_to.row()][king_to.col()] = std::move(king_piece);
@@ -579,6 +557,7 @@ bool Board::would_leave_king_in_check(
     Color moving_color,
     bool is_en_passant_capture,
     const Square& en_passant_capture_square) {
+    // Full move simulation (including en passant capture), then rollback.
     auto moving_piece = std::move(board_[origin.row()][origin.col()]);
     auto captured_piece = std::move(board_[destination.row()][destination.col()]);
     std::unique_ptr<Piece> en_passant_captured_piece;
